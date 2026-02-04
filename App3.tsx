@@ -1,5 +1,18 @@
 /*
    Lesson 3: Full Form Handling with Multiple Inputs & Validation (React Native)
+   Lesson 4: Controlled vs Uncontrolled Inputs (React Native – 2026 Standard)
+
+   # Uncontrolled Input
+   Code Example : <TextInput placeholder="Name" />
+
+   # Controlled Input
+   Code Example :
+     const [name, setName] = useState('');
+
+     <TextInput
+       value={name}
+       onChangeText={setName}
+     />
 */
 import React, { useState } from 'react';
 import {
