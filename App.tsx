@@ -1,5 +1,6 @@
 /*
   Lesson 5 : Keyboard Handling & Avoiding Overlap (React Native)
+  Lesson 6 : Reusable & Advanced Input Component (2026 Standard)
 */
 
 import React from 'react';
