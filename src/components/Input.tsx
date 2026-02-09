@@ -9,13 +9,13 @@ import {
 } from 'react-native';
 import { COLORS } from '../theme/colors';
 
-
-/** TextInputProps : Inherits all native TextInput props 
+/** TextInputProps : Inherits all native TextInput props
  *  like keyboardType, returnKeyType, autoCapitalize, etc. No TypeScript errors. Ever.*/
 type InputProps = TextInputProps & {
   label: string;
   error?: string;
   isPassword?: boolean;
+  onPosition?: (y: number) => void; // This will help to avoid spacing before input labels
 };
 
 /** forwardRef<TextInput, InputProps> : Allows parent to control focus 
@@ -53,13 +53,18 @@ type InputProps = TextInputProps & {
    ↓
   <TextInput />
                                                   */
-const Input = forwardRef<TextInput, InputProps>(  
+const Input = forwardRef<TextInput, InputProps>(
   ({ label, error, isPassword, style, ...props }, ref) => {
     const [focused, setFocused] = React.useState(false);
     const [showPassword, setShowPassword] = React.useState(false);
 
     return (
-      <View style={styles.wrapper}>
+      <View
+        style={styles.wrapper}
+        onLayout={e => {
+          props.onPosition?.(e.nativeEvent.layout.y);
+        }}
+      >
         {label && <Text style={styles.label}>{label}</Text>}
 
         <View
@@ -76,6 +81,8 @@ const Input = forwardRef<TextInput, InputProps>(
             secureTextEntry={isPassword && !showPassword}
             onFocus={() => setFocused(true)}
             onBlur={() => setFocused(false)}
+            accessibilityLabel={label}
+            accessibilityHint={`Enter ${label}`}
             {...props}
           />
 
@@ -98,13 +105,13 @@ const styles = StyleSheet.create({
   wrapper: {
     width: '100%',
     marginBottom: 16,
-    alignItems: 'center'
+    alignItems: 'center',
   },
   label: {
     alignSelf: 'flex-start',
     marginLeft: '10%',
     marginBottom: 4,
-    fontWeight:'bold',
+    fontWeight: 'bold',
     color: COLORS.text,
     marginStart: 30,
   },
@@ -127,7 +134,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     height: 50,
-    color: COLORS.text
+    color: COLORS.text,
   },
   eye: {
     fontSize: 18,
@@ -141,4 +148,3 @@ const styles = StyleSheet.create({
     marginLeft: '10%',
   },
 });
-

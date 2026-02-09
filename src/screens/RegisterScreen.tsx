@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   Text,
   View,
@@ -16,6 +16,7 @@ import {
 import { COLORS } from '../theme/colors';
 import Input from '../components/Input';
 import { validateForm } from '../utils/validators';
+import { registerUser } from '../api/authApi';
 
 export default function RegisterScreen() {
   const [form, setForm] = useState({
@@ -31,8 +32,13 @@ export default function RegisterScreen() {
     confirmPassword: '',
   });
 
-  const [errors,setErrors] = useState<Record<string,string>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const inputPositions = useRef<Record<string, number>>({});
+  const scrollRef = useRef<ScrollView>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [apiError, setApiError] = useState('');
 
+  const firstNameRef = React.useRef<TextInput>(null);
   const lastNameRef = React.useRef<TextInput>(null);
   const emailRef = React.useRef<TextInput>(null);
   const phoneRef = React.useRef<TextInput>(null);
@@ -43,18 +49,32 @@ export default function RegisterScreen() {
   const passwordRef = React.useRef<TextInput>(null);
   const confirmPasswordRef = React.useRef<TextInput>(null);
 
+  // Map field names to refs
+  const inputRefs: Record<string, React.RefObject<TextInput | null>> = {
+    firstName: firstNameRef,
+    lastName: lastNameRef,
+    email: emailRef,
+    phone: phoneRef,
+    address: addressRef,
+    city: cityRef,
+    state: stateRef,
+    zip: zipRef,
+    password: passwordRef,
+    confirmPassword: confirmPasswordRef,
+  };
+
   const handleChange = (field: string, value: string) => {
     setForm(form => ({
       ...form,
       [field]: value,
     }));
 
-    if(errors[field]){
-      setErrors(errors =>({
+    if (errors[field]) {
+      setErrors(errors => ({
         ...errors,
         [field]: '',
       }));
-    }    
+    }
   };
 
   // const validateForm = () => {
@@ -73,7 +93,7 @@ export default function RegisterScreen() {
   //   } else if(!/\S+@\S+\.\S+/.test(form.email)){
   //     newErrors.email = 'Email is invalid';
   //   }
-    
+
   //   if(!form.phone.trim()){
   //     newErrors.phone = 'Phone number is required';
   //   } else if(!/^\d{10}$/.test(form.phone)){
@@ -95,16 +115,50 @@ export default function RegisterScreen() {
   //   return Object.keys(newErrors).length === 0;
   // }
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     // if(!validateForm()) return;
+    if (isSubmitting) return; // Prevent multiple submissions
 
     const validationErrors = validateForm(form);
-    if(Object.keys(validationErrors).length > 0){
-      setErrors(validationErrors);
+    setErrors(validationErrors);
+
+    if (Object.keys(validationErrors).length > 0) {
+      const firstErrorField = Object.keys(validationErrors)[0];
+
+      // 1️⃣ Scroll to the field
+      scrollRef.current?.scrollTo({
+        y: inputPositions.current[firstErrorField] - 20, // Add some padding
+        animated: true,
+      });
+
+      // 2️⃣ Focus the input
+      inputRefs[firstErrorField]?.current?.focus();
       return;
     }
 
-    Alert.alert('Success', 'Form submitted successfully!');
+    setApiError('');
+    setIsSubmitting(true);
+
+    try {
+      // Simulate API call
+      // await new Promise<void>(resolve => setTimeout(resolve, 1500));
+
+      /* const response = await registerUser({
+        name: form.firstName,
+        email: form.email,
+        password: form.password,
+      }); */
+      Keyboard.dismiss();
+      await registerUser(form);
+
+      Alert.alert('Success', 'Form submitted successfully!');
+    } catch (error: any) {
+      setApiError(
+        error instanceof Error ? error.message : 'An unexpected error occurred',
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -115,13 +169,15 @@ export default function RegisterScreen() {
       <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
         <View style={{ flex: 1 }}>
           <ScrollView
+            ref={scrollRef}
             contentContainerStyle={styles.container}
             keyboardShouldPersistTaps="handled"
           >
             <View style={styles.form}>
               <Text style={styles.title}>Registration Form</Text>
-
+              {/**onLayout: Hey, this component is X pixels from top*/}
               <Input
+                ref={firstNameRef}
                 label="First Name"
                 placeholder="First Name"
                 value={form.firstName}
@@ -129,6 +185,9 @@ export default function RegisterScreen() {
                 onChangeText={text => handleChange('firstName', text)}
                 onSubmitEditing={() => lastNameRef.current?.focus()}
                 error={errors.firstName}
+                onPosition={y => {
+                  inputPositions.current.firstName = y;
+                }}
               />
               <Input
                 ref={lastNameRef}
@@ -139,6 +198,9 @@ export default function RegisterScreen() {
                 onChangeText={text => handleChange('lastName', text)}
                 onSubmitEditing={() => emailRef.current?.focus()}
                 error={errors.lastName}
+                onPosition={y => {
+                  inputPositions.current.lastName = y;
+                }}
               />
               <Input
                 ref={emailRef}
@@ -150,6 +212,9 @@ export default function RegisterScreen() {
                 keyboardType="email-address"
                 onSubmitEditing={() => phoneRef.current?.focus()}
                 error={errors.email}
+                onPosition={y => {
+                  inputPositions.current.email = y;
+                }}
               />
               <Input
                 ref={phoneRef}
@@ -161,8 +226,10 @@ export default function RegisterScreen() {
                 keyboardType="phone-pad"
                 onSubmitEditing={() => addressRef.current?.focus()}
                 error={errors.phone}
+                onPosition={y => {
+                  inputPositions.current.phone = y;
+                }}
               />
-
               <Input
                 ref={addressRef}
                 label="Address"
@@ -200,6 +267,7 @@ export default function RegisterScreen() {
                 keyboardType="numeric"
                 onSubmitEditing={() => passwordRef.current?.focus()}
               />
+
               <Input
                 ref={passwordRef}
                 label="Password"
@@ -210,7 +278,11 @@ export default function RegisterScreen() {
                 isPassword
                 onSubmitEditing={() => confirmPasswordRef.current?.focus()}
                 error={errors.password}
+                onPosition={y => {
+                  inputPositions.current.password = y;
+                }}
               />
+
               <Input
                 ref={confirmPasswordRef}
                 label="Confirm Password"
@@ -221,10 +293,28 @@ export default function RegisterScreen() {
                 isPassword
                 onSubmitEditing={handleSubmit}
                 error={errors.confirmPassword}
+                onPosition={y => {
+                  inputPositions.current.confirmPassword = y;
+                }}
               />
-              <TouchableOpacity style={styles.buttonContainer} onPress={handleSubmit}>
-                <Text style={styles.buttonText}>Submit</Text>
+              <TouchableOpacity
+                style={[
+                  styles.buttonContainer,
+                  isSubmitting && styles.disabledButton,
+                ]}
+                onPress={handleSubmit}
+                disabled={isSubmitting}
+                accessibilityRole="button"
+                accessibilityState={{ disabled: isSubmitting }}
+              >
+                <Text style={styles.buttonText}>
+                  {isSubmitting ? 'Submitting...' : 'Submit'}
+                </Text>
               </TouchableOpacity>
+
+              {apiError ? (
+                <Text style={styles.errorText}>{apiError}</Text>
+              ) : null}
             </View>
           </ScrollView>
         </View>
@@ -234,7 +324,7 @@ export default function RegisterScreen() {
 }
 
 const styles = StyleSheet.create({
-  container:{
+  container: {
     padding: 20,
     alignItems: 'center',
     backgroundColor: COLORS.background,
@@ -256,9 +346,16 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
   },
-  buttonText:{
+  buttonText: {
     color: COLORS.background,
     fontSize: 16,
     fontWeight: 'bold',
-  }
+  },
+  disabledButton: {
+    opacity: 0.6,
+  },
+  errorText: {
+    color: 'red',
+    marginTop: 10,
+  },
 });
