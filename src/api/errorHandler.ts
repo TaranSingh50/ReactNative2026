@@ -2,6 +2,9 @@ import axios from 'axios';
 
 export const getErrorMessage = (error: unknown): string => {
   if (axios.isAxiosError(error)) {
+    console.log('ERROR STATUS:', error.response?.status)
+    console.log('ERROR DATA:', error.response?.data)
+    console.log('ERROR FULL:', error.response)
     const data = error.response?.data as any;
 
     return (

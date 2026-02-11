@@ -31,15 +31,14 @@ export const registerUser = async (
 };
 
 
-export const loginApi = (
-  data: LoginRequest,
-  cancelToken?: CancelToken
-) =>{
-  return axiosClient.post<LoginResponse>(
-    '/login',
-    data,
-    {
-      cancelToken,
-    }
+export const loginApi = async (
+  data: LoginRequest
+): Promise<LoginResponse> => {
+  const response = await axiosClient.post<LoginResponse>(
+    '/auth/login',
+    data
   )
+
+  // ✅ Return only pure data
+  return response.data
 }
