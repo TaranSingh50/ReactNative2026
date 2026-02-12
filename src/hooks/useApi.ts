@@ -1,60 +1,62 @@
-import { useCallback, useState } from 'react'
-import Toast from 'react-native-toast-message'
-import { getErrorMessage } from '../api/errorHandler'
+import { useCallback, useState } from 'react';
+import Toast from 'react-native-toast-message';
+import { getErrorMessage } from '../api/errorHandler';
 
 interface UseApiOptions {
-  retries?: number
+  retries?: number;
 }
 
 export const useApi = <TRequest, TResponse>(
   apiFunction: (params: TRequest) => Promise<TResponse>,
-  options: UseApiOptions = {}
+  options: UseApiOptions = {},
 ) => {
-  const { retries = 0 } = options
+  const { retries = 0 } = options;
 
-  const [data, setData] = useState<TResponse | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [data, setData] = useState<TResponse | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const callApi = useCallback(
     async (params: TRequest): Promise<TResponse> => {
-      let lastError: unknown
+      let lastError: unknown;
 
-      for (let attempt = 0; attempt <= retries; attempt++) {
-        try {
-          setLoading(true)
-          setError(null)
+      setLoading(true);
+      setError(null);
+      try {
+        for (let attempt = 0; attempt <= retries; attempt++) {
+          try {
+            const result = await apiFunction(params);
 
-          const result = await apiFunction(params)
+            setData(result);
+            return result;
+          } catch (err) {
+            lastError = err;
 
-          setData(result)
-          return result
-        } catch (err) {
-          lastError = err
+            // If last retry → handle error
+            if (attempt === retries) {
+              const message = getErrorMessage(err);
+              setError(message);
 
-          if (attempt === retries) {
-            const message = getErrorMessage(err)
-            setError(message)
-
-            Toast.show({
-              type: 'error',
-              text1: message,
-            })
+              Toast.show({
+                type: 'error',
+                text1: message,
+              });
+            }
           }
-        } finally {
-          setLoading(false)
         }
+      } finally {
+        setLoading(false);
       }
 
-      throw lastError
+      throw lastError;
     },
-    [apiFunction, retries]
-  )
+    [apiFunction, retries],
+  );
 
   return {
     data,
     loading,
     error,
     callApi,
-  }
-}
+  };
+};

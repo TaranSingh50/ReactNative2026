@@ -31,7 +31,7 @@ export default function LoginScreen() {
   });
 
   // Use the custom useApi hook for login
-  const { data, loading, callApi } = useApi(loginApi, { retries: 2 });
+  const { data, error, loading, callApi } = useApi(loginApi, { retries: 2 });
 
   // Use to show field-specific errors
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -50,9 +50,6 @@ export default function LoginScreen() {
     password: passwordRef,
   };
 
-  // State to manage form submission status
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
   const handleChange = (field: string, value: string) => {
     setForm(form => ({
       ...form,
@@ -69,8 +66,6 @@ export default function LoginScreen() {
 
   // handle login button press
   const onLogin = async () => {
-    if (isSubmitting) return; // Prevent multiple submissions
-
     const validationErrors = validateLoginForm(form);
     setErrors(validationErrors);
 
@@ -88,9 +83,6 @@ export default function LoginScreen() {
       return;
     }
 
-    setIsSubmitting(true);
-
-    try {
       Keyboard.dismiss();
       const response = await callApi(form);
       console.log('LOGIN RESPONSE:', response)
@@ -99,11 +91,6 @@ export default function LoginScreen() {
         text1: 'Login Successful',
         text2: `Token: ${response.accessToken}`,
       });
-    } catch {
-      // error already handled in hook
-    } finally {
-      setIsSubmitting(false);
-    }
   };
 
   return (
@@ -120,7 +107,7 @@ export default function LoginScreen() {
               keyboardShouldPersistTaps="handled"
             >
               <View style={styles.form}>
-                <Text style={styles.title}>Registration Form</Text>
+                <Text style={styles.title}>Login</Text>
                 <Input
                   ref={usernameRef}
                   label="Username"
@@ -149,15 +136,15 @@ export default function LoginScreen() {
                 <TouchableOpacity
                   style={[
                     styles.buttonContainer,
-                    isSubmitting && styles.disabledButton,
+                    loading && styles.disabledButton,
                   ]}
                   onPress={onLogin}
-                  disabled={isSubmitting}
+                  disabled={loading}
                   accessibilityRole="button"
-                  accessibilityState={{ disabled: isSubmitting }}
+                  accessibilityState={{ disabled: loading }}
                 >
                   <Text style={styles.buttonText}>
-                    {isSubmitting ? 'Logging in...' : 'Login'}
+                    {loading ? 'Logging in...' : 'Login'}
                   </Text>
                 </TouchableOpacity>
               </View>
